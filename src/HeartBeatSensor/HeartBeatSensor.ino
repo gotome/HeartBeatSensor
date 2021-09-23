@@ -9,6 +9,7 @@
 //display
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+
 //project
 #include "HeartBeatSensor.h"
  
@@ -53,7 +54,11 @@ void setup()
 //****************************************
 void loop()
 {
-  
-  //delay
+  display.clearDisplay();    
+  display.setCursor(10, 0);
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.print("Hello, World");
+  display.display();
   delay(10);
 }
