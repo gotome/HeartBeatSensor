@@ -14,6 +14,16 @@
 //ANALOG PINS
 #define DO_PIN_A0 A0
 
+//DIGITAL PINS
+#define DI_PIN_8 8
+#define DI_PIN_9 9
+#define DI_PIN_10 10
+#define DI_PIN_11 12
+#define DI_PIN_13 13
+
 //***************************************************************
 //                     FUNCTION PROTOTYPES
 //***************************************************************
+void playTone(void);
+int frequency(char note);
+void showStats(int heartRate);
