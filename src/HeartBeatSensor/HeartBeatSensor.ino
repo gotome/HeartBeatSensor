@@ -20,34 +20,36 @@
 //****************************************
 //                GLOBALS
 //****************************************
-const int buzzerPin = DI_PIN_9;
+const int i16BuzzerPin = DI_PIN_9;
 
 // We'll set up an array with the notes we want to play
 // change these values to make different songs!
-
 // Length must equal the total number of notes and spaces 
-
-const int songLength = 18;
+const int i16SongLength = 18;
 
 // Notes is an array of text characters corresponding to the notes
 // in your song. A space represents a rest (no tone)
 
 //char notes[] = "cdfda ag cdfdg gf "; // a space represents a rest
-char notes[] = "C C C C "; // a space represents a rest
+char u8NotesArr[] = "C C C C "; // a space represents a rest
 
 // Beats is an array values for each note and rest.
 // A "1" represents a quarter-note, 2 a half-note, etc.
 // Don't forget that the rests (spaces) need a length as well.
 
 //int beats[] = {1,1,1,1,1,1,4,4,2,1,1,1,1,1,1,4,4,2};
-int beats[] = {2,1,2,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1};
+int i16BeatsArr[] = {2,1,2,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1};
 
 // The tempo is how fast to play the song.
 // To make the song play faster, decrease this value.
+int i16Tempo = 150;
 
-int tempo = 150;
+// calculated heart rate from heart rate sensor
+int i16HeartRate = 0;
 
-int heartRate = 0;
+//raw heart rate analog value
+int i16SensorVal = 0;
+
 
 //****************************************
 //         FUNCTION DECLARATIONS
@@ -60,30 +62,29 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 void playTone(void) {
   int i, duration;
   
-  for (i = 0; i < songLength; i++) // step through the song arrays
+  for (i = 0; i < i16SongLength; i++) // step through the song arrays
   {
-    duration = beats[i] * tempo;  // length of note/rest in ms
+    duration = i16BeatsArr[i] * i16Tempo;  // length of note/rest in ms
     
-    if (notes[i] == ' ')          // is this a rest? 
+    if (u8NotesArr[i] == ' ')          // is this a rest? 
     {
       delay(duration);            // then pause for a moment
     }
     else                          // otherwise, play the note
     {
-      tone(buzzerPin, frequency(notes[i]), duration);
+      tone(i16BuzzerPin, frequency(u8NotesArr[i]), duration);
       delay(duration);            // wait for tone to finish
     }
-    delay(tempo/10);              // brief pause between notes
+    delay(i16Tempo/10);              // brief pause between notes
   }
 }
 
-int frequency(char note) {
+int frequency(char u8Note) {
   // This function takes a note character (a-g), and returns the
   // corresponding frequency in Hz for the tone() function.
   
-  int i;
-  const int numNotes = 8;  // number of notes we're storing
-  
+  int i16Idx;
+  const int i16NumNotes = 8;  // number of notes we're storing  
   // The following arrays hold the note characters and their
   // corresponding frequencies. The last "C" note is uppercase
   // to separate it from the first lowercase "c". If you want to
@@ -92,17 +93,17 @@ int frequency(char note) {
   // For the "char" (character) type, we put single characters
   // in single quotes.
 
-  char names[] = { 'c', 'd', 'e', 'f', 'g', 'a', 'b', 'C' };
-  int frequencies[] = {262, 294, 330, 349, 392, 440, 494, 523};
+  char u8NamesArr[] = { 'c', 'd', 'e', 'f', 'g', 'a', 'b', 'C' };
+  const int i16FrequenciesArr[] = {262, 294, 330, 349, 392, 440, 494, 523};
   
   // Now we'll search through the letters in the array, and if
   // we find it, we'll return the frequency for that note.
   
-  for (i = 0; i < numNotes; i++)  // Step through the notes
+  for (i16Idx = 0; i16Idx < i16NumNotes; i16Idx++)  // Step through the notes
   {
-    if (names[i] == note)         // Is this the one?
+    if (u8NamesArr[i16Idx] == u8Note)         // Is this the one?
     {
-      return(frequencies[i]);     // Yes! Return the frequency
+      return(i16FrequenciesArr[i16Idx]);     // Yes! Return the frequency
     }
   }
   
@@ -124,14 +125,21 @@ void setup()
   pinMode(8, OUTPUT);
   //delay time
   delay(10);
-  pinMode(buzzerPin, OUTPUT);
+  pinMode(i16BuzzerPin, OUTPUT);
 }
 
-void showStats(int heartRate) { 
+void showStats(int heartRate) 
+{ 
   char charVal[5]; 
   display.clearDisplay();   
   dtostrf(heartRate, 4, 0, charVal);
 
+  //show cardiogramm
+  //display.writeLine();
+  display.drawLine(0, 0, 10, 10, WHITE); 
+
+  //show beats per minute
+  display.writeFillRect(0,50,128,16,BLACK);
   display.setCursor(10, 35);
   display.setTextSize(1);
   display.setTextColor(WHITE);
@@ -148,10 +156,14 @@ void showStats(int heartRate) {
 
 void loop() 
 {
-  
-  playTone();
+  //show statistics on lcd terminal  
   showStats(60);
 
+  //alarm if heart rate is to low
+  if (i16HeartRate < 60) {
+    playTone();
+  }
+  
   delay(10);
 
   // We only want to play the song once, so we'll pause forever:
