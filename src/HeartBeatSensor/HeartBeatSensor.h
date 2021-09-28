@@ -26,3 +26,4 @@
 /////////////////////////////////////////////////////////////////
 void playTone(void);
 void showStats(unsigned int heartRate);
+unsigned int getDebouncedHeartRate(unsigned int heartRate)
