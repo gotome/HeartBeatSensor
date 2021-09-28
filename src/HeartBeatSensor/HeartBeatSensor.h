@@ -18,8 +18,11 @@
 #define DI_PIN_11 12
 #define DI_PIN_13 13
 
+//ANALOG PINS
+#define AI_PIN_0 A0
+
 /////////////////////////////////////////////////////////////////
 //                     FUNCTION PROTOTYPES
 /////////////////////////////////////////////////////////////////
 void playTone(void);
-void showStats(int heartRate, int i16SensorVal);
+void showStats(unsigned int heartRate);

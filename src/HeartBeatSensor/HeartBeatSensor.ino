@@ -18,13 +18,12 @@
 ///////////////////////////////////////////
 //                GLOBALS
 ///////////////////////////////////////////
-const int i16BuzzerPin = DI_PIN_9;
 
 // calculated heart rate from heart rate sensor
-int i16HeartRate = 0;
+unsigned int u16HeartRate = 0;
 
 // raw heart rate analog value
-int i16SensorVal = 0;
+unsigned int u16SensorVal = 0;
 
 // coordinates for electro cardiogram
 int i16OldX = 0; 
@@ -36,8 +35,18 @@ int i16Y = 0;
 long l32PrevToneTime=0;
 long l32CurrToneTime=0;
 
+//valid heart rate timer (milliseconds)
+long l32PrevBpmTime=0;
+long l32CurrBpmTime=0;
+
+//last valid heart rate
+unsigned int u16LastValBpm = 0;
+
 // time until the next tone is played 
-const long l32EventIntervall = 1000;
+const long l32EventIntervallBpm = 5000;
+
+// time until the next tone is played 
+const long l32EventIntervallTone = 1000;
 
 // the tempo is how fast to play the song.
 // to make the song play faster, decrease this value.
@@ -60,18 +69,15 @@ void playTone(void) {
   // play tone each second
   l32CurrToneTime = millis();
 
-  if ((l32CurrToneTime - l32PrevToneTime) >= l32EventIntervall) {
-    tone(i16BuzzerPin, i16ToneFrequency, l32ToneDuration);
+  if ((l32CurrToneTime - l32PrevToneTime) >= l32EventIntervallTone) {
+    tone(DI_PIN_9, i16ToneFrequency, l32ToneDuration);
     l32PrevToneTime = l32CurrToneTime;
   }
 }
 
 
-void showStats(int heartRate, int i16SensorVal) 
+void showStats(unsigned int heartRate) 
 { 
-  char charVal[5]; 
-  dtostrf(heartRate, 4, 0, charVal);
-
   //reset cursor if end of display is reached
   if (i16X > 127) {
     display.clearDisplay(); 
@@ -79,7 +85,11 @@ void showStats(int heartRate, int i16SensorVal)
     i16OldX = i16X; 
   }
 
-  i16Y = 60-(i16SensorVal/16);
+  if (heartRate == 0) {
+    i16Y = i16OldY; 
+  } else {
+    i16Y = 45 - ((heartRate / 5) % 45);
+  }
   i16OldX = i16X; 
   i16OldY = i16Y; 
 
@@ -91,12 +101,27 @@ void showStats(int heartRate, int i16SensorVal)
   display.setCursor(10, 50);
   display.setTextSize(2);
   display.setTextColor(WHITE);
-  display.print(charVal);
-  display.print(" BPM");
+  display.print(String(heartRate));  
+  display.print(" BPM");  
   display.display();
 
   //finally increase ECG x-coordinate
   i16X++;
+}
+
+unsigned int getDebouncedHeartRate(unsigned int heartRate) {
+  l32CurrBpmTime = millis();
+  
+  if (heartRate > 0) {
+    u16LastValBpm = heartRate; 
+    l32PrevBpmTime = l32CurrBpmTime;
+  }
+  else {
+    if ((l32CurrBpmTime - l32PrevBpmTime) >= l32EventIntervallBpm) {
+      u16LastValBpm = 0;
+    }
+  }
+  return u16LastValBpm;
 }
 
 ///////////////////////////////////////////
@@ -109,12 +134,12 @@ void setup()
   //display
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){ //initialize with the I2C addr 0x3C (128x64)
     Serial.println("Display (SSD1306) allocation failed");
+    while(true){} // don´t proceed, loop forever
   } 
-  display.clearDisplay();
+  display.clearDisplay();  
+
   //pin mode setup 
-  pinMode(i16BuzzerPin, OUTPUT);
-  //delay time
-  delay(10);
+  pinMode(DI_PIN_9, OUTPUT);
 }
 
 ///////////////////////////////////////////
@@ -122,18 +147,25 @@ void setup()
 //////////////////////////////////////////
 void loop() 
 {  
-  i16SensorVal = 700; //heartrate.getValue(A0);
-  i16HeartRate = 60; //heartrate.getRate();
-  //Serial output
-  Serial.print("heart rate: " + String(i16HeartRate) + "\t");
-  Serial.println("sensor value: " + String(i16SensorVal) + "\t");
-  Serial.println("x-coordinate: " + String(i16X) + "\t");
+  u16SensorVal = heartrate.getValue(AI_PIN_0);
+  u16HeartRate = heartrate.getRate();
+  u16HeartRate = getDebouncedHeartRate(u16HeartRate);
 
-  //show statistics on lcd terminal  
-  showStats(i16HeartRate, i16SensorVal);
+  // serial output
+  if (u16HeartRate) {
+    Serial.print("heart rate: " + String(u16HeartRate) + "\t");
+    Serial.println("sensor value: " + String(u16SensorVal) + "\t");
+    //Serial.println("x-coordinate: " + String(i16X) + "\t");
+  }
 
-  //play alarm if heart rate is to low
-  if (i16HeartRate < 60) {
+  // show statistics on lcd terminal    
+  showStats(u16HeartRate);
+
+  // play alarm if heart rate is to low
+  if (u16HeartRate < 60 || u16HeartRate > 190) {
     playTone();
   }  
+
+  delay(20);
+
 }
